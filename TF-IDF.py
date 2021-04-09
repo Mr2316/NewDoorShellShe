@@ -71,13 +71,13 @@ def answerSequence(q):
 			itov[len(vtoi)-1] = v
 			unkown_v += 1
 	if unkown_v:
-		_idf = np.concatenate((idf,np.zeros((unkown_v,1),dtype = np.float)),axis =0)
-		_tf_idf = np.concatenate((tf_idf,np.zeros((unkown_v,tf_idf.shape[1]),dtype = np.float)),axis = 0)
+		_idf = np.concatenate((idf,np.zeros((unkown_v,1),dtype = np.float64)),axis =0)
+		_tf_idf = np.concatenate((tf_idf,np.zeros((unkown_v,tf_idf.shape[1]),dtype = np.float64)),axis = 0)
 	else:
 		_idf,_tf_idf = idf,tf_idf
 
 	counter = Counter(words_in_q)
-	q_tf = np.zeros((len(_idf),1),dtype = np.float)
+	q_tf = np.zeros((len(_idf),1),dtype = np.float64)
 	for v in counter.keys():
 		q_tf[vtoi[v],0] = counter[v]
 
