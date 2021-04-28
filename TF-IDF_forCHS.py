@@ -21,7 +21,7 @@ answers = [
 	"（一）请假手续实行层级负责制。一般员工请假，须由所在团队负责人批准，报人力资源处备案；各部门负责人请假，报主管所领导审批；所领导个人请假，按干部管理权限和规定办理。前述休假制度中有特殊规定的，按相关规定办理。（二）员工享受相应的假期须办理请假手续，首先应到人力资源处领取并填写请假表，交所在部门负责人或主管院领导审批签字，再交人力资源处审核备案。（三）员工假期满后应及时返回单位工作，且在上班当天按批准权限办理销假手续。如不及时销假，其超过的时间按事假累积计算。（四）员工如无特殊情况，必须按照本条（一）、（二）规定事先办理请假审批手续。未按规定办理请假手续的，或请假期满逾期不归、又未履行续假手续的，按旷工处理。关于员工考勤与休假制度的具体信息以所内网规章制度为准。",
 	"凡正式员工均可享受一定年限和额度的租房补贴，具体以内网发布的相关规章制度为准。",
 	"正式员工子女入托儿所或幼儿园后， 享受入托费用补贴，每位员工限一个小孩，标准根据相关文件执行，每年年底集中办理一次.",
-	"发放月数4个月（6月、7月、8月、9月）， 发放标准参照浙江省劳动和社会保障局关于高温费发放标准执行。",
+	"高温补贴发放月数4个月（6月、7月、8月、9月）， 发放标准参照浙江省劳动和社会保障局关于高温费发放标准执行。",
 	"所有正式员工享受定额午餐补贴，发放至餐卡中。",
 	"一定级别的员工，根据工作需要，可享受通讯补贴。",
 	"在端午节、中秋节、春节等中国传统节日，所有员工均享受一定礼品慰问，由工会确定。",
@@ -33,11 +33,11 @@ answers = [
 	"所（局）级领导干部从事兼职活动，须向中科院报备审批；科研人员从事兼职活动，需根据兼职机构性质分别报技术转移、科技综合处审批。全职承担战略性先导科技专项任务的骨干人员须报先导专项领导小组和总体组（部）审核备案。"
 ]
 
-keyword = [
+keywords = [
 	["录用"],
 	["合同","试用期"],
 	["人事","档案"],
-	["调","转","档案"],
+	["调","转","档案","调档"],
 	["员工","培训"],
 	["聘期","考核","合同","期满"],
 	["离职","手续"],
@@ -57,3 +57,75 @@ keyword = [
 	["公积金","提取","条件"],
 	["兼职"]
 ]
+
+len_answers=len(answers)
+
+allwords = set(itertools.chain(*keywords))
+
+len_allwords = len(allwords)
+
+vtoi = {v:i for i,v in enumerate(allwords)}
+itov = {i:v for v,i in vtoi.items()}
+
+
+def get_tf():
+	_tf = np.zeros((len_allwords,len_answers),dtype = np.float64)
+	for i,d in enumerate(keywords):
+		counter = Counter(d)
+		for v in counter.keys():
+			_tf[vtoi[v],i] = counter[v] / counter.most_common(1)[0][1]
+
+	return np.log(1+_tf)
+
+def get_idf():
+	df = np.zeros((len_allwords,1))
+	for i in range(len_allwords):
+		dcount = 0
+		for d in keywords:
+			dcount += 1 if itov[i] in d else 0
+		df [i,0] = dcount
+
+	return 1+np.log(len_answers/(df+1))
+
+tf = get_tf()
+idf = get_idf()
+
+tf_idf = tf * idf
+
+def cosine_similarity(q_vector,_tf_idf):
+	vecq = q_vector/np.sqrt(np.sum(np.square(q_vector),axis=0, keepdims=True))					#[n_vcab,1]
+	vecall = _tf_idf/np.sqrt(np.sum(np.square(_tf_idf),axis=0,keepdims=True))					#[n_vcab,n_docs]
+	product = vecall.T.dot(vecq).ravel()
+
+	return product
+
+def answerSequence(q):
+	words_in_q = q.replace(","," ").split(" ")
+	unkown_v = 0																				#the number of new vcab
+	for v in set(words_in_q):
+		if v not in vtoi:
+			vtoi[v] = len(vtoi)
+			itov[len(vtoi)-1] = v
+			unkown_v += 1
+	if unkown_v:
+		_idf = np.concatenate((idf,np.zeros((unkown_v,1),dtype = np.float64)),axis =0)
+		_tf_idf = np.concatenate((tf_idf,np.zeros((unkown_v,tf_idf.shape[1]),dtype = np.float64)),axis = 0)
+	else:
+		_idf,_tf_idf = idf,tf_idf
+
+	counter = Counter(words_in_q)
+	q_tf = np.zeros((len(_idf),1),dtype = np.float64)
+	for v in counter.keys():
+		q_tf[vtoi[v],0] = counter[v]
+
+	q_vector = q_tf * _idf																	#[n_vcab,1]
+	answerSequence = cosine_similarity(q_vector,_tf_idf)
+	return answerSequence
+
+def QandA():
+	q = input("Question:  ")
+	answer = answerSequence(q)
+	top = answer.argsort()[-1:][::-1]
+	print([answers[i] for i in top])
+
+QandA()
