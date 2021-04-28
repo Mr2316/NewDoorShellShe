@@ -92,4 +92,5 @@ def QandA():
 	top3 = answer.argsort()[-3:][::-1]
 	print([docs[i] for i in top3])
 
-QandA()
+while True:
+	QandA()

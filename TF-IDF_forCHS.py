@@ -3,6 +3,7 @@
 import numpy as np 
 from collections import Counter
 import itertools
+import jieba
 
 
 np.set_printoptions(threshold=np.inf)
@@ -100,12 +101,13 @@ def cosine_similarity(q_vector,_tf_idf):
 	return product
 
 def answerSequence(q):
-	words_in_q = q.replace(","," ").split(" ")
-	unkown_v = 0																				#the number of new vcab
-	for v in set(words_in_q):
-		if v not in vtoi:
-			vtoi[v] = len(vtoi)
-			itov[len(vtoi)-1] = v
+	unkown_v = 0																			#the number of new vcab
+	v2i = vtoi.copy()
+	i2v = itov.copy()
+	for v in set(q):
+		if v not in v2i:
+			v2i[v] = len(v2i)
+			i2v[len(v2i)-1] = v
 			unkown_v += 1
 	if unkown_v:
 		_idf = np.concatenate((idf,np.zeros((unkown_v,1),dtype = np.float64)),axis =0)
@@ -113,19 +115,23 @@ def answerSequence(q):
 	else:
 		_idf,_tf_idf = idf,tf_idf
 
-	counter = Counter(words_in_q)
+	counter = Counter(q)
 	q_tf = np.zeros((len(_idf),1),dtype = np.float64)
 	for v in counter.keys():
-		q_tf[vtoi[v],0] = counter[v]
+		q_tf[v2i[v],0] = counter[v]
 
 	q_vector = q_tf * _idf																	#[n_vcab,1]
 	answerSequence = cosine_similarity(q_vector,_tf_idf)
 	return answerSequence
 
-def QandA():
-	q = input("Question:  ")
-	answer = answerSequence(q)
-	top = answer.argsort()[-1:][::-1]
-	print([answers[i] for i in top])
 
-QandA()
+
+while  True:
+	q = input("输入问题:  ")
+	if q == "quit":
+		break
+	else:
+		q = jieba.lcut(q)
+		answer = answerSequence(q)
+		top = answer.argsort()[-1:][::-1]
+		print([answers[i] for i in top])
