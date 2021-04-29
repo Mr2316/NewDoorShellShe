@@ -131,7 +131,7 @@ while  True:
 	if q == "quit":
 		break
 	else:
-		q = jieba.lcut(q)
+		q = jieba.lcut(q,cut_all=True)
 		answer = answerSequence(q)
 		top = answer.argsort()[-1:][::-1]
 		print([answers[i] for i in top])
