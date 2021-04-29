@@ -133,5 +133,5 @@ while  True:
 	else:
 		q = jieba.lcut(q,cut_all=True)
 		answer = answerSequence(q)
-		top = answer.argsort()[-1:][::-1]
-		print([answers[i] for i in top])
+		top = answer.argsort()[-1:]
+		print(answers[top[0]])
